@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        .list-holder{
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        .node{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid black;
+            padding: 10px;
+            margin: 5px;
+        }
+        .node .address{
+            font-size: 12px;
+            color: gray;
+        }
+        .node .value{
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .node .pointer{
+            width: 40px;
+            height: 20px;
+            border: 1px solid black;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: gray;
+        }
+        .arrow-svg{
+            z-index: 999;
+        }
+
+        .pseudocode {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            white-space: pre;
+        }
+
+        .pseudocode .line {
+            padding: 2px 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="list-holder">
+    </div>
+    <div class="list-holder"></div>
+    <div class="pseudocode">
+    </div>
+</body>
+
+<script>
+    const pseudocode = `
+    start = head
+    while start is not null:
+        minNode = start
+        current = start.next
+        while current is not null:
+            if current.value < minNode.value:
+                minNode = current
+            current = current.next
+        swap start and minNode
+        // (swap the visual elements so its not tangled)
+        start = start.next
+
+    done
+    `;
+
+    function writePseudocode(str){
+        const pseudocodeDiv = document.querySelector('.pseudocode');
+        const lines = str.split('\n');
+        lines.forEach(line => {
+            const lineDiv = document.createElement('div');
+            lineDiv.classList.add('line');
+            lineDiv.textContent = line;
+            pseudocodeDiv.appendChild(lineDiv);
+        });
+    }
+    function drawArrow(from, to) {
+        // draws an arrow from 'from' element to 'to' element
+        const fromRect = from.getBoundingClientRect();
+        const toRect = to.getBoundingClientRect();
+
+        const startX = fromRect.right + window.scrollX;
+        const startY = fromRect.top + fromRect.height / 2 + window.scrollY;
+        const endX = toRect.left + window.scrollX;
+        const endY = toRect.top + toRect.height / 2 + window.scrollY;
+
+        const left = Math.min(startX, endX);
+        const top = Math.min(startY, endY);
+        const width = Math.max(Math.abs(endX - startX), 1);
+        const height = Math.max(Math.abs(endY - startY), 1);
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.style.position = "absolute";
+        svg.style.left = `${left}px`;
+        svg.style.top = `${top}px`;
+        svg.style.width = `${width}px`;
+        svg.style.height = `${height}px`;
+        svg.style.overflow = "visible";
+        svg.style.pointerEvents = "none";
+        svg.classList.add("arrow-svg");
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", `${startX - left}`);
+        line.setAttribute("y1", `${startY - top}`);
+        line.setAttribute("x2", `${endX - left}`);
+        line.setAttribute("y2", `${endY - top}`);
+        line.setAttribute("stroke", "black");
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("marker-end", "url(#arrowhead)");
+        svg.appendChild(line);
+
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+        marker.setAttribute("id", "arrowhead");
+        marker.setAttribute("markerWidth", "10");
+        marker.setAttribute("markerHeight", "7");
+        marker.setAttribute("refX", "10");
+        marker.setAttribute("refY", "3.5");
+        marker.setAttribute("orient", "auto");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M0,0 L10,3.5 L0,7 Z");
+        path.setAttribute("fill", "black");
+        marker.appendChild(path);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+        // delete last arrow if exists
+        const existingArrow = from.querySelector('.arrow-svg');
+        if (existingArrow) {
+            existingArrow.remove();
+        }
+        from.appendChild(svg);
+    }
+
+    var valuesA = [1, 2, 8, 20, 22];
+    var valuesB = [3, 7, 11, 14];
+
+    let highlightednode = null;
+
+    class Node {
+        constructor(value, address) {
+            this.value = value;
+            this.address = address;
+            this.next = null;
+            this.element = this.createElement();
+        }
+
+        createElement() {
+            const node = document.createElement('div');
+            node.classList.add('node');
+
+            const addressDiv = document.createElement('div');
+            addressDiv.classList.add('address');
+            addressDiv.textContent = this.address;
+            node.appendChild(addressDiv);
+
+            const valueDiv = document.createElement('div');
+            valueDiv.classList.add('value');
+            valueDiv.textContent = this.value;
+            node.appendChild(valueDiv);
+
+            const pointerDiv = document.createElement('div');
+            pointerDiv.classList.add('pointer');
+            pointerDiv.textContent = 'null';
+            node.appendChild(pointerDiv);
+
+            return node;
+        }
+
+        setNext(node) {
+            this.next = node;
+            this.element.querySelector('.pointer').textContent = node ? node.address : 'null';
+            if (node) {
+                console.log(`Drawing arrow from ${this.address} to ${node.address}`);
+                // schedule because dom might not be fully rendered yet
+                setTimeout(() => {
+                drawArrow(this.element.querySelector('.pointer'), node.element.querySelector('.address'));
+                }, 100);
+            }
+        }
+
+        highlight(color) {
+            if (highlightednode) {
+                highlightednode.getElement().style.backgroundColor = '';
+                highlightednode.getElement().style.border = '1px solid black';
+            }
+            this.element.style.backgroundColor = color;
+            this.element.style.border = '2px solid '+color;
+            highlightednode = this;
+        }
+
+        getElement() {
+            return this.element;
+        }
+
+        getValue() {
+            return this.value;
+        }
+
+        getNext() {
+            return this.next;
+        }
+
+        setValue(value) {
+            this.value = value;
+            this.element.querySelector('.value').textContent = value;
+        }
+    }
+
+    function highlightPseudocodeLine(lineNumber) {
+        const lines = document.querySelectorAll('.pseudocode .line');
+        lines.forEach((line, index) => {
+            if (index === lineNumber) {
+                line.style.backgroundColor = 'yellow';
+            } else {
+                line.style.backgroundColor = '';
+            }
+        });
+    }
+
+    highlightPseudocodeLine(0); // Highlight the first line initially
+
+    function createLinkedList(values, startAddress = 0) {
+        let start = new Node('Start', '0x'+startAddress.toString().padStart(3, '0'));
+        let head = null;
+        let prevNode = null;
+        var allNodes = []
+
+        values.forEach((value, index) => {
+            const node = new Node(value, `0x${(index + 1+startAddress).toString().padStart(3, '0')}`);
+            allNodes.push(node);
+            if (!head) {
+                head = node;
+            }
+            if (prevNode) {
+                prevNode.setNext(node);
+            }
+            prevNode = node;
+        });
+        start.setNext(head);
+        allNodes.unshift(start);
+
+        return allNodes;
+    }
+
+    var node_elements = createLinkedList(valuesA);
+    const listHolder = document.querySelector('.list-holder');
+    node_elements.forEach(node => {
+        listHolder.appendChild(node.getElement());
+    });
+
+    var second_list_elements = createLinkedList(valuesB, 100);
+    const secondListHolder = document.querySelectorAll('.list-holder')[1];
+    second_list_elements.forEach(node => {
+        secondListHolder.appendChild(node.getElement());
+    });
+
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function mergeSortedLists(listA, listB) {
+        // two lists with two heads. first simple solution then animate
+        let headA = listA[0]
+        let headB = listB[0]
+
+        let pointerB = headB.getNext(); // skip the start node
+        // append fisrt node of listB to the end of listA
+        let currentA = headA;
+
+        highlightPseudocodeLine(1);
+        await delay(500); // wait for a moment to show the highlight
+        highlightPseudocodeLine(2);
+        await delay(500); // wait for a moment to show the highlight
+        while (pointerB){
+            pointerB.highlight('lightcoral');
+            // find where to append pointerB in listA
+            highlightPseudocodeLine(3);
+            await delay(500); // wait for a moment to show the highlight
+            while (currentA.getNext() && currentA.getNext().getValue() < pointerB.getValue()) {
+                currentA.highlight('lightblue');
+                highlightPseudocodeLine(4);
+                await delay(500); // wait for a moment to show the highlight
+                currentA = currentA.getNext();
+                highlightPseudocodeLine(5);
+                await delay(500); // wait for a moment to show the highlight
+            }
+            // insert pointerB after currentA
+            let nextB = pointerB.getNext();
+            highlightPseudocodeLine(6);
+            await delay(500); // wait for a moment to show the highlight
+            pointerB.setNext(currentA.getNext());
+            highlightPseudocodeLine(7);
+            await delay(500); // wait for a moment to show the highlight
+            currentA.setNext(pointerB);
+            highlightPseudocodeLine(8);
+            await delay(500); // wait for a moment to show the highlight
+            pointerB = nextB;
+            headB.setNext(pointerB); // update headB to point to the new start of listB
+            highlightPseudocodeLine(9);
+            await delay(1000); // wait for a moment to show the highlight
+        }
+
+        highlightPseudocodeLine(10);
+
+    }
+
+    const mergePseudocode = `
+    pointerB = startB
+    currentA = startA
+    while pointerB is not null:
+        while currentA.next is not null and currentA.next.value < pointerB.value:
+            currentA = currentA.next
+        nextB = pointerB.next
+        pointerB.next = currentA.next
+        currentA.next = pointerB
+        pointerB = nextB
+    done
+    `
+
+    writePseudocode(mergePseudocode);
+        mergeSortedLists(node_elements, second_list_elements);
+
+
+</script>

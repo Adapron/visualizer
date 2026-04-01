@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .heap-holder {
+            border: 1px solid gray;
+            border-radius: 15px;
+        }
+        .heap-element {
+            width: fit-content;
+            height: fit-content;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .children {
+            width: fit-content;
+            height: fit-content;
+            display: flex;
+            flex-direction: row;
+            
+        }
+        .value {
+            width:25px;
+            height: 25px;
+            text-align: center;
+            margin: 10px;
+            background-color: rgba(0, 0, 0, 0.1);
+            
+        }
+        .actual {
+            width:25px;
+            height: 25px;
+            text-align: center;
+            border: 1px solid blue;
+            border-radius: 50%;
+            transition: transform 0.5 ;
+
+        }
+
+        .flash-red{
+            animation: flash-red 300ms ease;
+        }
+        @keyframes flash-red {
+            0% {background-color: transparent}
+            50% {background-color: red}
+            100% {background-color: transparent}
+            
+        }
+
+        .flash-green{
+            animation: flash-green 300ms ease;
+        }
+        @keyframes flash-green {
+            0% {background-color: transparent}
+            50% {background-color: lime}
+            100% {background-color: transparent}
+            
+        }
+        .flash-yellow{
+            animation: flash-yellow 300ms ease;
+        }
+        @keyframes flash-yellow {
+            0% {background-color: transparent}
+            50% {background-color: yellow}
+            100% {background-color: transparent}
+            
+        }
+    </style>
+</head>
+<body>
+    <div class="heap-holder" id="heap-holder"></div>
+</body>
+
+<script>
+    // construct binary tree:
+    class Node{
+        constructor(value, children){
+            this.value = value;
+            this.children = children;
+            this.el = null;
+        }
+    }
+
+    var sourceArray = []
+    for (let i = 0; i < 15; i++) {
+        sourceArray.push(null)
+        
+    }
+    function constructTree(array){
+        var resultLinear = []
+        for (let i = 0; i < array.length; i++) {
+            const element = array[i];
+            const self = new Node(element, [])
+            resultLinear.push(self)
+            const level = Math.floor(Math.log2(i+1))
+            if (level == 0){
+                continue
+            }
+            const index = i+1- 2**level
+            const prevIndex = Math.floor(index/2.0)
+            const prevLevel = level-1;
+            const absolutePrevIndex = 2**(prevLevel)+prevIndex-1
+            const prevNode = resultLinear[absolutePrevIndex]
+            prevNode.children.push(self)
+            
+        }
+        return resultLinear
+    }
+
+    function recurstiveBuildDOMTree(node){
+        let el = document.createElement("div")
+        el.className = "heap-element"
+        if (node.value == null){
+            el.innerHTML = '<div class="value"><div class="actual" style="display:none;"></div></div>'
+
+        }else{
+            el.innerHTML = '<div class="value"><div class="actual">'+node.value+'</div></div>'
+
+        }
+        node.el = el.firstChild.firstChild;
+
+        if (node.children.length == 0){
+            el.style.width = "25px"
+            return [el, 25]
+        }
+        let childrenDiv = document.createElement("div")
+        childrenDiv.className = "children"
+        
+        el.appendChild(childrenDiv)
+        var totalWidth = 5
+        node.children.forEach(child => {
+            let tup = recurstiveBuildDOMTree(child)
+            let childEl = tup[0]
+            let w = tup[1]
+            childrenDiv.appendChild(childEl)
+            totalWidth += w
+            
+        });
+        el.style.width = totalWidth+"px"
+        
+        return [el, totalWidth]
+    }
+    let result = constructTree(sourceArray)
+    console.log(result[0])
+    let domResult = recurstiveBuildDOMTree(result[0])[0]
+    document.getElementById("heap-holder").appendChild(domResult)
+
+    function swap(element, other){
+
+        element.style.position = "absolute";
+        other.style.position = "absolute";
+        
+        //animate card moving to target deck
+        const targetRect = other.getBoundingClientRect();
+        const sourceRect = element.getBoundingClientRect();
+        const deltaX = targetRect.left - sourceRect.left;
+        const deltaY = targetRect.top - sourceRect.top;
+        element.style.transition = "transform 0.5s ease";
+        other.style.transition = "transform 0.5s ease";
+        setTimeout(() => {
+            element.style.transform = `translate(${ deltaX}px, ${ deltaY}px)`;
+            other.style.transform   = `translate(${-deltaX}px, ${-deltaY}px)`;
+        }, 50);
+
+        //after animation, actually move the card element
+        setTimeout(() => {
+            element.style.transform = "";
+            other.style.transform = "";
+            const parentA = element.parentNode;
+            const parentB = other.parentNode;
+            const nextA = element.nextSibling;
+            const nextB = other.nextSibling;
+            if(parentA == parentB){
+                if (nextA == other){
+                    parentA.insertBefore(other, element);
+                }
+                else if (nextB == element){
+                    parentA.insertBefore(element, other);
+                }
+                else{
+                    parentA.insertBefore(element, nextB);
+                    parentA.insertBefore(other, nextA);
+                }
+
+            }else{
+                parentA.insertBefore(other, nextA);
+                parentB.insertBefore(element, nextB);
+
+                element.style.position = "relative";
+                other.style.position = "relative";
+            }
+        }, 600);
+    }
+
+    function findElementRecursive(start, what){
+        if(start.firstChild.firstChild.innerHTML == what){
+            return start.firstChild.firstChild
+        }
+        if(start.children.length < 2){
+            return null
+        }
+        let c = start.children[1].children
+        if(!c){
+            return null
+        }
+        
+
+        for (let i = 0; i < c.length; i++) {
+            const element = c[i];
+            ans = findElementRecursive(element, what)
+            if (ans != null){
+                return ans
+            }
+        }
+
+    }
+
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    console.log(result)
+
+    function flash(el, cls){
+        el.classList.add(cls)
+        function cleanup(){
+            el.classList.remove(cls)
+            el.removeEventListener("animationend", cleanup)
+        }
+        el.addEventListener("animationend", cleanup)
+    }
+
+    class Heap{
+        constructor(values){
+            this.values = values;
+            this.size = 0;
+            this.capacity = values.length;
+            for (let i = 0; i < values.length; i++) {
+                const element = values[i];
+                if (element.value != null){
+                    this.size++;
+                }
+                
+            }
+        }
+
+        append(value){
+            if (this.size == this.capacity){
+                throw new Error("heap is full");                
+            }
+            let el = this.values[this.size].el
+            this.values[this.size].value = value
+            el.style.display = "block";
+            el.innerHTML = value;
+            el.style.transform = "scale(0)"
+            el.style.transition = "transform 0.5s ease";
+
+            setTimeout(()=>{
+                el.style.transform = "scale(1.0)"
+
+            }, 50)
+            this.size++;
+
+        }
+
+         swap(A, B){
+            let elA = this.values[A].el
+            let elB = this.values[B].el
+            swap(elA, elB)
+            let hold = this.values[A].value
+            this.values[A].value = this.values[B].value
+            this.values[B].value = hold
+
+
+            let holdel = this.values[A].el
+            this.values[A].el = this.values[B].el
+            this.values[B].el = holdel
+
+        }
+
+        getParentIndex(i){
+            const level = Math.floor(Math.log2(i+1))
+            if (level == 0){
+                return -1
+            }
+            const index = i+1- 2**level
+            const prevIndex = Math.floor(index/2.0)
+            const prevLevel = level-1;
+            const absolutePrevIndex = 2**(prevLevel)+prevIndex-1
+            return absolutePrevIndex
+
+        }
+        getChildIndex(i){
+            const level = Math.floor(Math.log2(i+1))
+            const index = i+1- 2**level
+            const nextIndex = index*2;
+            const nextLevel = level+1;
+            const absoluteNextIndex = 2**(nextLevel)+nextIndex-1
+            return absoluteNextIndex
+
+        }
+
+        compare(A, B){
+            let elA = this.values[A]
+            let elB = this.values[B]
+            return elA.value >= elB.value;
+        }
+
+        check(index){
+            console.log("checking", index)
+            let parentIndex = this.getParentIndex(index)
+            if (parentIndex == -1){
+                return true
+            }
+            console.log(parentIndex)
+            let result = this.compare(parentIndex, index)
+            let elA = this.values[parentIndex].el
+            let elB = this.values[index].el
+            if (result){
+
+                flash(elA, "flash-green")
+                flash(elB, "flash-green")
+            }
+            else{
+
+                flash(elA, "flash-red")
+                flash(elB, "flash-red")
+            }
+            return result
+        }
+
+        async bubble(index){
+            var parentIndex = this.getParentIndex(index)
+            while(parentIndex >= 0){
+                let result = this.check(index)
+                console.log("checing", index, parentIndex)
+                await delay(500)
+                if (result){
+                    break;
+                }else{
+
+                    this.swap(parentIndex, index)
+                    index = parentIndex
+                    parentIndex = this.getParentIndex(index)
+                }
+
+                await delay(500)
+            }
+        }
+        async carefulAppend(value){
+            this.append(value)
+            await delay(500)
+            await this.bubble(this.size -1)
+        }
+        pop(){
+            if (this.size == 0){
+                throw new Error("heap is empty");                
+            }
+            this.size--;
+            let el = this.values[this.size].el
+            console.log(el)
+            this.values[this.size].value = null
+            el.style.transition = "transform 0.5s ease";
+
+            setTimeout(()=>{
+                el.style.transform = "scale(0)"
+
+            }, 50)
+            setTimeout(()=>{
+                el.style.display="none"
+            }, 600)
+
+        }
+        async extract(){
+            let el = this.values[0].el
+            console.log(el)
+            this.values[0].value = null
+            el.style.transition = "transform 0.5s ease";
+
+            setTimeout(()=>{
+                el.style.transform = "scale(0)"
+
+            }, 50)
+            setTimeout(()=>{
+                el.style.transition = "";
+                el.style.visibility = "hidden"
+                el.style.transform = "scale(1)"
+            }, 600)
+            await delay(500)
+            this.swap(0, this.size-1)
+            this.size--
+            await delay(500)
+            var myIndex = 0;
+            var childIndex = this.getChildIndex(0) //1
+
+                console.log("start", this.size, childIndex)
+            while (this.size > childIndex) {
+                console.log("fisrt", this.size, childIndex)
+                const isFirstBigger = this.compare(childIndex, childIndex+1)
+                
+                let elA = this.values[childIndex].el
+                let elB = this.values[childIndex+1].el
+                flash(elA, "flash-yellow")
+                flash(elB, "flash-yellow")
+                await delay(500)
+                var biggerChildIndex = childIndex
+                console.log("bigger", biggerChildIndex)
+                if(!isFirstBigger){
+                    biggerChildIndex++;
+                }
+
+                result = this.check(biggerChildIndex)
+                await delay(500)
+                if(result){
+                    break;
+                }else{
+                    this.swap(myIndex, biggerChildIndex)
+                }
+
+                myIndex = biggerChildIndex;
+                childIndex = this.getChildIndex(biggerChildIndex)
+                await delay(500)
+
+                
+            }
+        }
+    }
+
+    let heap = new Heap(result)
+    async function test(){
+        await delay(500)
+        toAdd = [1, 5, 2, 6, 0, 3, 7]
+        for (let i = 0; i < toAdd.length; i++) {
+            const element = toAdd[i];
+            await heap.carefulAppend(element)
+            
+        }
+        for (let i = 0; i < toAdd.length; i++) {
+            await delay(500)
+            await heap.extract()
+            
+        }
+    }
+    test()
+    
+</script>
