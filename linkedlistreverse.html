@@ -53,6 +53,8 @@
 </head>
 
 <body>
+    <input type="text" id="input" placeholder="Enter values separated by commas" style="margin-bottom: 20px;" value="1, 2, 8, 20, 22, 25, 53, 35, 40">
+    <button onclick="createAndReverseList()">Create and Reverse List</button>
     <div class="list-holder" id="pointers" style="margin-left: 150px;">
     </div>
     <div class="list-holder" id="holder">
@@ -418,7 +420,30 @@
 
     writePseudocode(reversePseudocode);
 
-    reverseLinkedList(node_elements[0]);
+    //reverseLinkedList(node_elements[0]);
+
+    function createAndReverseList() {
+        // clear existing nodes and pointers
+        document.getElementById("holder").innerHTML = '';
+        document.getElementById("pointers").innerHTML = '';
+        highlightColorDict = {};
+
+        const input = document.getElementById("input").value;
+        const values = input.split(',').map(val => parseInt(val.trim())).filter(val => !isNaN(val));
+        var node_elements = createLinkedList(values);
+
+        const listHolder = document.getElementById("holder")
+        node_elements.forEach(node => {
+            listHolder.appendChild(node.getElement());
+        });
+
+        const pointerHolder = document.getElementById("pointers")
+        pointers.forEach(pointer => {
+            pointerHolder.appendChild(pointer.getElement());
+        });
+
+        reverseLinkedList(node_elements[0]);
+    }
 
         
 
