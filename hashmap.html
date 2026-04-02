@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        .array-holder{
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-direction: column;
+        }
+        .array-element{
+            width: 300px;
+            height: 50px;
+            border: 1px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .array-slot {
+            width: 350px;
+            height: 60px;
+            border: 1px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .array-slot .hash {
+            font-weight: bold;
+            color: red;
+            margin-right: 15px;
+        }
+        .array-slot .content{
+            color: blue;
+            width: 310px;
+        }
+        .array-element .key {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .array-element .value {
+            color: blue;
+        }
+    </style>
+
+    </head>
+    <body>
+        <div class="array-holder" id="hashmap">
+            <div class="array-slot">
+                <span class="hash">0</span>
+                <span class="content"><div class="array-element"><span class="key">Key1:</span><span class="value">Value1</span></div></span>
+            </div>
+            <div class="array-slot">
+                <span class="hash">1</span>
+                <span class="content"><div class="array-element"><span class="key">Key2:</span><span class="value">Value2</span></div></span>
+            </div>
+            <div class="array-slot">
+                <span class="hash">2</span>
+                <span class="content"><div class="array-element"><span class="key">Key3:</span><span class="value">Value3</span></div></span>
+            </div>
+        </div>
+    </body>
+
+<script>
+
+    function createElement(key, value = "") {
+        let isNull = key === null;
+        let isEmpty = key === undefined;
+        if (isNull) {
+            key = 'null';
+        }
+        else if (isEmpty) {
+            key = 'EMPTY';
+        }
+        else key = String(key)+":";
+        const element = document.createElement('div');
+        element.className = 'array-element';
+        element.innerHTML = `<span class="key">${key}</span><span class="value">${value}</span>`;
+        if (isNull){
+            element.style.backgroundColor = 'lightgray';
+            element.querySelector('.key').style.color = 'gray';
+        }
+        if (isEmpty){
+            element.style.backgroundColor = 'lightyellow';
+            element.querySelector('.key').style.color = 'orange';
+        }
+        return element;
+    }
+    function allocateHashmap(size) {
+        const hashmap = document.getElementById('hashmap');
+        hashmap.innerHTML = ''; // Clear existing content
+        for (let i = 0; i < size; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'array-slot';
+            slot.innerHTML = `<span class="hash">${i}</span><span class="content"></span>`;
+            slot.querySelector('.content').appendChild(createElement(null, ``));
+            hashmap.appendChild(slot);
+        }
+    }
+
+
+
+
+
+    class HashMap{
+        constructor(size) {
+            this.size = size;
+            this.map = new Array(size).fill(null);
+            allocateHashmap(size);
+        }
+
+        add(hash, key, value) {
+            let index = hash % this.size;
+            while (this.map[index] !== null) {
+                index = (index + 1) % this.size; // linear probing
+            }
+            let slot = document.querySelector(`.array-slot:nth-child(${index + 1}) .content`);
+            let element = createElement(key, value);
+            
+
+            slot.innerHTML = '';
+            slot.appendChild(element);
+            this.map[index] = {key, value};
+        }
+
+        has(hash, key) {
+            let index = hash % this.size;
+            while (this.map[index] !== null) {
+                
+                if (this.map[index]!=undefined && this.map[index].key === key) {
+                    return true;
+                }
+                index = (index + 1) % this.size; // linear probing
+            }
+            return false;
+        }
+
+        remove(hash, key) {
+            let index = hash % this.size;
+            while (this.map[index] !== null) {
+                if (this.map[index].key === key) {
+                    this.map[index] = undefined; // Mark as deleted
+                    let slot = document.querySelector(`.array-slot:nth-child(${index + 1}) .content`);
+                    slot.innerHTML = '';
+                    slot.appendChild(createElement(undefined, ``));
+                    return true;
+                }
+                index = (index + 1) % this.size; // linear probing
+            }
+            return false;
+        }
+    }
+
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Example usage:
+    async function show(){
+        const hashmap = new HashMap(5);
+        await delay(1000);
+        hashmap.add(1, 'Key1', 'Value1');
+        await delay(1000);
+        hashmap.add(6, 'collidion', 'Value2');
+        await delay(1000);
+        console.log(hashmap.has(1, 'Key1')); // true
+        await delay(1000);
+        console.log(hashmap.has(6, 'collidion')); // true
+        await delay(1000);
+        console.log(hashmap.has(1, 'Key3')); //false
+        await delay(1000);
+        hashmap.remove(1, 'Key1');
+        await delay(1000);
+        console.log(hashmap.has(1, 'Key1')); // false
+        await delay(1000);
+        console.log(hashmap.has(6, 'collidion')); // true
+
+
+    }
+
+    show()
+</script>

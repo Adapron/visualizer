@@ -286,9 +286,9 @@
         pointerHolder.appendChild(pointer.getElement());
     });
 
-    const prevNode = pointers[0];
-    const currentNode = pointers[1];
-    const nextNode = pointers[2];
+    var prevNode = pointers[0];
+    var currentNode = pointers[1];
+    var nextNode = pointers[2];
 
 
     const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -408,13 +408,13 @@
 
     const reversePseudocode = `
     prev = null
-    current = head.next
+    current = head->next
     while current is not null:
-        next = current.next
-        current.next = prev
+        next = current->next
+        current->next = prev
         prev = current
         current = next
-    head.next = prev
+    head->next = prev
     done
     `
 
@@ -435,7 +435,20 @@
         const listHolder = document.getElementById("holder")
         node_elements.forEach(node => {
             listHolder.appendChild(node.getElement());
+
+
         });
+
+        let pointers = [];
+        pointers.push(new Node("Prev", "0x999"));
+        pointers.push(new Node("Current", "0x998"));
+        pointers.push(new Node("Next", "0x997"));
+
+        prevNode = pointers[0];
+        currentNode = pointers[1];
+        nextNode = pointers[2];
+
+
 
         const pointerHolder = document.getElementById("pointers")
         pointers.forEach(pointer => {
