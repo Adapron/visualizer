@@ -53,7 +53,9 @@
 </head>
 
 <body>
-    <div class="list-holder">
+    <div class="list-holder" id="pointers" style="margin-left: 150px;">
+    </div>
+    <div class="list-holder" id="holder">
     </div>
     <div class="list-holder"></div>
     <div class="pseudocode">
@@ -216,6 +218,14 @@
             return this.next;
         }
 
+        free() {
+            this.setNext(null);
+            this.element.querySelector('.value').textContent = 'freed';
+            this.element.style.backgroundColor = 'lightgray';
+            this.element.style.border = '1px solid black';
+
+        }
+
         setValue(value) {
             this.value = value;
             this.element.querySelector('.value').textContent = value;
@@ -259,10 +269,24 @@
     }
 
     var node_elements = createLinkedList(valuesA);
-    const listHolder = document.querySelector('.list-holder');
+
+    var pointers = [];
+    pointers.push(new Node("Prev", "0x999"));
+    pointers.push(new Node("Current", "0x998"));
+    pointers.push(new Node("Next", "0x997"));
+    const listHolder = document.getElementById("holder")
     node_elements.forEach(node => {
         listHolder.appendChild(node.getElement());
     });
+
+    const pointerHolder = document.getElementById("pointers")
+    pointers.forEach(pointer => {
+        pointerHolder.appendChild(pointer.getElement());
+    });
+
+    const prevNode = pointers[0];
+    const currentNode = pointers[1];
+    const nextNode = pointers[2];
 
 
     const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -275,6 +299,8 @@
         let pointerB = headB.getNext(); // skip the start node
         // append fisrt node of listB to the end of listA
         let currentA = headA;
+
+
 
         highlightPseudocodeLine(1);
         await delay(500); // wait for a moment to show the highlight
@@ -331,10 +357,14 @@
         highlightPseudocodeLine(1);
         await delay(500); // wait for a moment to show the highlight
         let prev = null;
+        prevNode.setNext(prev);
+        
 
         highlightPseudocodeLine(2);
         await delay(500); // wait for a moment to show the highlight
         let current = head.getNext();
+        currentNode.setNext(current);
+
         while (current) {
 
             highlightPseudocodeLine(3);
@@ -343,7 +373,7 @@
             highlightPseudocodeLine(4);
             await delay(500); // wait for a moment to show the highlight
             let next = current.getNext();
-            
+            nextNode.setNext(next);
 
             highlightPseudocodeLine(5);
             await delay(500); // wait for a moment to show the highlight
@@ -353,12 +383,13 @@
             highlightPseudocodeLine(6);
             await delay(500); // wait for a moment to show the highlight
             prev = current;
+            prevNode.setNext(prev);
 
-            prev.highlight('lightcoral');
 
             highlightPseudocodeLine(7);
             await delay(500); // wait for a moment to show the highlight
             current = next;
+            currentNode.setNext(current);
         }
 
             highlightPseudocodeLine(8);
@@ -367,6 +398,10 @@
 
         highlightPseudocodeLine(9);
         await delay(500); // wait for a moment to show the highlight
+        // free pointers
+        prevNode.free();
+        currentNode.free();
+        nextNode.free();
     }
 
     const reversePseudocode = `
