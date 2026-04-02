@@ -53,7 +53,18 @@
 </head>
 
 <body>
-    <div class="list-holder">
+    <div id="controls">
+        <label>autoplay</label>
+        <input type="checkbox" onchange ="toggleAutoplay()" id="autoplay">
+        <button id="step" onclick="step()">step</button>
+    </div>
+
+    <div class="list-holder" id="pointers">
+    </div>
+    <div class="list-holder" id="holder">
+    </div>
+    <div class="list-holder" id="result">
+
     </div>
     <div class="pseudocode">
     </div>
@@ -86,7 +97,6 @@
             pseudocodeDiv.appendChild(lineDiv);
         });
     }
-    writePseudocode(pseudocode);
     function drawArrow(from, to) {
         // draws an arrow from 'from' element to 'to' element
         const fromRect = from.getBoundingClientRect();
@@ -191,6 +201,15 @@
             }
         }
 
+
+        free() {
+            this.setNext(null);
+            this.element.querySelector('.value').textContent = 'freed';
+            this.element.style.backgroundColor = 'lightgray';
+            this.element.style.border = '1px solid black';
+
+        }
+
         highlight() {
             if (highlightednode) {
                 highlightednode.getElement().style.backgroundColor = '';
@@ -232,14 +251,14 @@
 
     highlightPseudocodeLine(0); // Highlight the first line initially
 
-    function createLinkedList(values) {
-        let start = new Node('Start', '0x000');
+    function createLinkedList(values, startAddress = 0) {
+        let start = new Node('Start', '0x'+startAddress.toString().padStart(3, '0'));
         let head = null;
         let prevNode = null;
         var allNodes = []
 
         values.forEach((value, index) => {
-            const node = new Node(value, `0x${(index + 1).toString().padStart(3, '0')}`);
+            const node = new Node(value, `0x${(index + 1+startAddress).toString().padStart(3, '0')}`);
             allNodes.push(node);
             if (!head) {
                 head = node;
@@ -254,14 +273,180 @@
 
         return allNodes;
     }
-
     node_elements = createLinkedList(values);
-    const listHolder = document.querySelector('.list-holder');
+    const listHolder = document.getElementById('holder');
     node_elements.forEach(node => {
         listHolder.appendChild(node.getElement());
     });
 
+    let resultElements = createLinkedList([], 100); // empty list for results
+    const resultHolder = document.getElementById('result');
+    resultElements.forEach(node => {
+        resultHolder.appendChild(node.getElement());
+    });
+
+    let pointers = [];
+    pointers.push(new Node("Min", "0x999"));
+    pointers.push(new Node("Current", "0x998"));
+    pointers.push(new Node("Before Min", "0x997"));
+    pointers.push(new Node("Lagging", "0x996"));
+
+
+    let minNode = pointers[0]
+    let currentNode = pointers[1]
+    let beforeMinNode = pointers[2]
+    let laggingNode = pointers[3]
+        const pointerHolder = document.getElementById("pointers");
+    pointers.forEach(pointer => {
+        pointerHolder.appendChild(pointer.getElement());
+    })
+
     const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    var autoplay = false
+var waitingResolve = null
+var waitingForTimeout = null
+
+function toggleAutoplay(){
+    if (autoplay){
+        autoplay = false
+        clearTimeout(waitingForTimeout)
+    } else {
+        autoplay = true
+        if (waitingResolve){
+            waitingForTimeout = setTimeout(() => {
+                waitingResolve()
+            }, 500)
+        }
+    }
+}
+
+function step(){
+    if (waitingResolve){
+        waitingResolve()
+    }
+}
+
+function betterDelay(mult = 1){
+    console.log("making a new promise")
+    return new Promise(resolve => {
+        waitingResolve = resolve
+
+        if (autoplay){
+            console.log("adding a timeout")
+            waitingForTimeout = setTimeout(() => {
+                console.log("resolving that promise")
+                waitingResolve()
+            }, 500 * mult)
+        }
+    })
+}
+
+    async function betterSelectSortIteration(headA, headB){
+        if (!headA.next) {
+            return;
+        }
+        // pick smallest
+        let min = headA.next;
+        minNode.setNext(min);
+        highlightPseudocodeLine(3);
+        await betterDelay(1);
+
+        let lagging = headA; // the node before current, used for popping min later
+        laggingNode.setNext(lagging)
+        highlightPseudocodeLine(4);
+        await betterDelay(1)
+
+        let beforeMin = headA; // the node before min, used for swapping min later
+        beforeMinNode.setNext(beforeMin)
+        highlightPseudocodeLine(5);
+        await betterDelay(1)
+
+
+        let current = headA.next.next;
+        currentNode.setNext(current);
+        highlightPseudocodeLine(6);
+        await betterDelay(1);
+        while (current) {
+            highlightPseudocodeLine(7);
+            await betterDelay(1);
+            highlightPseudocodeLine(8);
+            await betterDelay(1);
+            if (current.value < min.value) {
+                min = current;
+                minNode.setNext(min);
+                highlightPseudocodeLine(9);
+                await betterDelay(1);
+
+                beforeMin = lagging.next;
+                beforeMinNode.setNext(beforeMin)
+                highlightPseudocodeLine(10);
+                await betterDelay(1)
+            }
+            lagging = lagging.next;
+            laggingNode.setNext(lagging);
+            highlightPseudocodeLine(11);
+            await betterDelay(1);
+            current = current.next;
+            currentNode.setNext(current);
+            highlightPseudocodeLine(12);
+            await betterDelay(1);
+        }
+
+        // now we have min, pop it from list A and push it to list B
+        beforeMin.setNext(min.next); // pop min
+        highlightPseudocodeLine(13);
+        await betterDelay(1);
+        min.setNext(headB.next); // push min to head of B
+        highlightPseudocodeLine(14);
+        await betterDelay(1);
+        headB.setNext(min);
+        highlightPseudocodeLine(15);
+        await betterDelay(1);
+
+        // for clarity move the visual element of min to the result list
+        console.log("result children: ", resultHolder.childNodes)
+        console.log("inserting before child: ", resultHolder.firstChild.nextSibling.nextSibling)
+        resultHolder.insertBefore(min.getElement(), resultHolder.firstChild.nextSibling.nextSibling);
+        // redraw all arrows
+        node_elements.forEach(node => {
+            if (node.getNext()) {
+                node.setNext(node.getNext()); // this will redraw the arrow
+            }
+        });
+        headB.setNext(headB.getNext());
+        pointers.forEach(pointer => {
+            if (pointer.getNext()) {
+                pointer.setNext(pointer.getNext()); // redraw pointer arrows
+            }
+        });
+
+        highlightPseudocodeLine(16);
+        await betterDelay(1);
+
+
+    }
+
+    const betterPseudocode = `
+    headB = new empty list
+    while headA->next is not null:
+        min = headA->next
+        lagging = headA
+        beforeMin = headA
+        current = headA->next->next
+        while current is not null:
+            if current.value < min.value:
+                min = current
+                beforeMin = lagging->next
+            lagging = lagging->next
+            current = current->next
+        beforeMin->next = min->next // pop min from list A
+        min->next = headB->next // push min to head of B
+        headB->next = min
+        // update visual arrangement by moving newly appended node down
+    done
+
+    
+    `
 
     async function selectSortIteration(list, start){
         const first = start.getNext();
@@ -272,7 +457,7 @@
         let minNode = first;
         highlightPseudocodeLine(3);
         let current = first.getNext();
-        await delay(500); // wait for a moment to show the highlight
+        await betterDelay(1); // wait for a moment to show the highlight
         highlightPseudocodeLine(4);
 
         let predecessor_of_minNode = start; // keeps track of the node before minNode for swapping
@@ -287,20 +472,20 @@
             highlightPseudocodeLine(6);
                 current.highlight()
 
-            await delay(500)
+            await betterDelay(1)
             if (current.getValue() < minNode.getValue()) {
                 predecessor_of_minNode = minNode;
                 highlightPseudocodeLine(7);
-                await delay(500);
+                await betterDelay(1);
                 minNode = current;
             }
             current = current.getNext();
             highlightPseudocodeLine(8);
-            await delay(500)
+            await betterDelay(1)
         }
 
         minNode.highlight();
-        await delay(1000); // wait for a moment to show the highlight
+        await betterDelay(2); // wait for a moment to show the highlight
         highlightPseudocodeLine(9);
 
         if (minNode !== first) {
@@ -317,7 +502,7 @@
         }
 
 
-        await delay(1000); // wait for a moment to show the highlight
+        await betterDelay(2); // wait for a moment to show the highlight
         // actually swapping the nodes in the DOM to reflect the new order after the swap
         const firstElement = first.getElement();
         const minNodeElement = minNode.getElement();
@@ -339,25 +524,32 @@
             }
         });
         highlightPseudocodeLine(10);
-        await delay(500); // wait for a moment to show the highlight
+        await betterDelay(1); // wait for a moment to show the highlight
         highlightPseudocodeLine(11);
 
         return start.getNext(); // new start of the unsorted portion
     }
 
+    writePseudocode(betterPseudocode);
     async function selectSortAnim(){
         // we cheat, main thing is the animation.
         highlightPseudocodeLine(1);
-        await delay(500); // wait for a moment to show the highlight
+        await betterDelay(1); // wait for a moment to show the highlight
 
         let currentStart = node_elements[0]; // start node
         for (let i = 0; i < values.length; i++) {
-            currentStart = await selectSortIteration(node_elements, currentStart);
+            highlightPseudocodeLine(2);
+            await betterDelay(1);
+            await betterSelectSortIteration(currentStart, resultElements[0]);
             
-            await delay(1000); // wait for a moment to show the highlight
+            await betterDelay(2); // wait for a moment to show the highlight
         }
+        highlightPseudocodeLine(17);
 
-        highlightPseudocodeLine(13);
+        pointers.forEach(pointer => {
+            pointer.free();
+        });
+
 
 
     }
